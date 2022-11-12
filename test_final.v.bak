@@ -1,0 +1,124 @@
+module test_final(clk, rst, button, VGA_CLK, VGA_VS, VGA_HS, VGA_BLANK_N, VGA_SYNC_N, VGA_R, VGA_G, VGA_B);
+	input clk;
+	input rst;
+	input [1:0] button;
+
+
+	output VGA_CLK;
+	output VGA_HS;
+	output VGA_VS;
+	output VGA_BLANK_N;
+	output VGA_SYNC_N;
+	output [9:0] VGA_R;
+	output [9:0] VGA_G;
+	output [9:0] VGA_B;
+
+	// Found VGA on the internet (Credited in citation)
+	vga_adapter VGA(
+	  .resetn(1'b1),
+	  .clock(clk),
+	  .colour(colour),
+	  .x(x),
+	  .y(y),
+	  .plot(1'b1),
+	  .VGA_R(VGA_R),
+	  .VGA_G(VGA_G),
+	  .VGA_B(VGA_B),
+	  .VGA_HS(VGA_HS),
+	  .VGA_VS(VGA_VS),
+	  .VGA_BLANK(VGA_BLANK_N),
+	  .VGA_SYNC(VGA_SYNC_N),
+	  .VGA_CLK(VGA_CLK));
+	defparam VGA.RESOLUTION = "160x120";
+	defparam VGA.MONOCHROME = "FALSE";
+	defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
+	defparam VGA.BACKGROUND_IMAGE = "background.mif";
+	
+	clock(.clock(clk), .clk(frame));
+	
+	reg [5:0] S;
+	reg [5:0] NS;
+	reg done;
+	
+	reg border_init;
+	reg paddle_init;
+	reg ball_init;
+	reg brick_init;
+	reg [7:0]x;
+	reg [7:0]y;
+	reg [7:0]pad_x, pad_y;
+	reg [7:0]ball_x, ball_y;
+	reg [7:0]brick1_x, brick1_y, brick2_x, brick2_y, brick3_x, brick3_y, brick4_x, brick4_y, brick5_x, brick5_y, brick6_x, brick6_y, brick7_x, brick7_y, brick8_x, brick8_y;
+	reg [2:0]colour;
+	reg ball_xdir, ball_ydir;
+	reg [17:0]draw;
+	reg [2:0] brick1_color, brick2_color, brick3_color, brick4_color, brick5_color, brick6_color, brick7_color, brick8_color;
+	wire frame;
+
+	
+	parameter START = 2'd0,
+	          DRAW = 2'd1,
+				 END = 2'd2;
+	
+	always @(posedge clk or negedge rst)
+		if (rst == 1'b0)
+			S <= START;
+		else
+			S <= NS;
+			
+	always @(*)
+		case (S)
+			START : NS = DRAW;
+			DRAW :
+			begin
+				if (done == 1'b1)
+					NS = END;
+				else
+					NS = DRAW;
+			end
+			END : NS = END;
+		endcase
+			
+			
+	always @(posedge clk or negedge rst)
+		if (rst == 1'b0)
+		begin
+			done <= 1'b0;
+			border_init <= 1'b0;
+			colour <= 3'b000; // Background color
+			x <= 8'b00000000;
+			y <= 8'b00000000;
+		end
+		else
+			case (S)
+				START : begin end
+				DRAW :
+				begin
+					x <= x + 1'b1;
+				end
+				END : done <= 1'b1;
+			endcase
+	
+endmodule 
+
+
+module clock (input clock, output clk);
+	reg [19:0] frame_counter;
+	reg frame;
+
+	always@(posedge clock)
+	  begin
+		 if (frame_counter == 20'b0) begin
+			frame_counter = 20'd833332;  // This divisor gives us ~60 frames per second
+			frame = 1'b1;
+		 end 
+		 
+		 else 
+		 begin
+			frame_counter = frame_counter - 1'b1;
+			frame = 1'b0;
+		 end
+	  end
+
+	assign clk = frame;
+endmodule
